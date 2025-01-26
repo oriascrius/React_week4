@@ -3,7 +3,7 @@ import axios from "axios";
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import "./assets/style.css";
-import { LoginFormData, Product, ApiResponse, NewProduct, PaginationType } from './types';
+import { LoginFormData, Product, ApiResponse, PaginationType } from './types';
 import Pagination from './components/Pagination';
 import ProductActions from './components/ProductActions';
 import ViewProduct from './components/ViewProduct';
@@ -34,25 +34,8 @@ function App() {
   // 儲存當前選中產品詳情的 state，初始值為 null
   const [tempProduct, setTempProduct] = useState<Product | null>(null);
 
-  // 新增商品的狀態
-  const [newProduct, setNewProduct] = useState<NewProduct>({
-    title: "",
-    category: "",
-    origin_price: 0,
-    price: 0,
-    unit: "",
-    description: "",
-    content: "",
-    is_enabled: 1,
-    imageUrl: "",
-    imagesUrl: [],
-    imagePreview: "",
-    imagesPreview: []
-  });
-
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editingId, setEditingId] = useState<string>('');
   const [showDetailModal, setShowDetailModal] = useState(false);
 
   // 新增分頁狀態
@@ -152,248 +135,16 @@ function App() {
     checkLoginStatus();
   }, []); // 空依賴陣列表示只在元件首次載入時執行
 
-  // 處理新增商品
-  const handleAddProduct = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    try {
-      const response = await axios.post<ApiResponse>(
-        `${API_BASE}/api/${API_PATH}/admin/product`,
-        {
-          data: newProduct
-        }
-      );
-
-      if (response.data.success) {
-        ReactSwal.fire({
-          title: '商品新增成功',
-          icon: 'success',
-          showConfirmButton: false,
-          timer: 1500
-        });
-        getData();
-        setShowAddModal(false);  // 關閉 Modal
-        // 重置表單
-        setNewProduct({
-          title: "",
-          category: "",
-          origin_price: 0,
-          price: 0,
-          unit: "",
-          description: "",
-          content: "",
-          is_enabled: 1,
-          imageUrl: "",
-          imagesUrl: [],
-          imagePreview: "",
-          imagesPreview: []
-        });
-      }
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        ReactSwal.fire({
-          title: '新增失敗',
-          text: error.response?.data.message,
-          icon: 'error',
-          confirmButtonColor: '#3085d6'
-        });
-      }
-    }
-  };
-
-  // 處理表單輸入
-  const handleProductChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-
-    if (name === 'imageUrl') {
-      // 直接設定圖片網址和預覽
-      setNewProduct(prev => ({
-        ...prev,
-        imageUrl: value,
-        imagePreview: value // 確保預覽值也被設定
-      }));
-    } else if (name === 'imagesUrl') {
-      // 處理多圖片網址
-      const urls = value.split(',').map(url => url.trim()).filter(url => url);
-      setNewProduct(prev => ({
-        ...prev,
-        imagesUrl: urls,
-        imagesPreview: urls // 確保預覽值也被設定
-      }));
-    } else {
-      // 處理其他欄位
-      setNewProduct(prev => ({
-        ...prev,
-        [name]: e.target.type === 'number' ? Number(value) : value
-      }));
-    }
-  };
-
-  // 刪除商品函式
-  const handleDelete = async (id: string) => {
-    const result = await ReactSwal.fire({
-      title: '確定要刪除嗎？',
-      text: "此操作無法復原！",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: '是的，刪除！',
-      cancelButtonText: '取消'
-    });
-
-    if (result.isConfirmed) {
-      try {
-        const response = await axios.delete<ApiResponse>(
-          `${API_BASE}/api/${API_PATH}/admin/product/${id}`
-        );
-
-        if (response.data.success) {
-          ReactSwal.fire({
-            title: '已刪除',
-            text: '商品已成功刪除！',
-            icon: 'success',
-            showConfirmButton: false,
-            timer: 1500
-          });
-          getData();
-        }
-      } catch (error) {
-        if (axios.isAxiosError(error)) {
-          ReactSwal.fire({
-            title: '錯誤',
-            text: `刪除失敗：${error.response?.data.message}`,
-            icon: 'error',
-            confirmButtonColor: '#3085d6'
-          });
-        }
-      }
-    }
-  };
-
   // 開啟編輯 Modal
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setShowEditModal(true);
   };
 
-  // 處理更新商品
-  const handleUpdate = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    try {
-      const response = await axios.put<ApiResponse>(
-        `${API_BASE}/api/${API_PATH}/admin/product/${editingId}`,  // 使用保存的 ID
-        {
-          data: newProduct
-        }
-      );
-
-      if (response.data.success) {
-        ReactSwal.fire({
-          title: '商品更新成功',
-          icon: 'success',
-          showConfirmButton: false,
-          timer: 1500
-        });
-        getData();
-        setShowEditModal(false);
-        setEditingId('');  // 清除編輯中的 ID
-        // 重置表單
-        setNewProduct({
-          title: "",
-          category: "",
-          origin_price: 0,
-          price: 0,
-          unit: "",
-          description: "",
-          content: "",
-          is_enabled: 1,
-          imageUrl: "",
-          imagesUrl: [],
-          imagePreview: "",
-          imagesPreview: []
-        });
-      }
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        ReactSwal.fire({
-          title: '更新失敗',
-          text: error.response?.data.message,
-          icon: 'error',
-          confirmButtonColor: '#3085d6'
-        });
-      }
-    }
-  };
-
   // Modal 關閉時也要清除編輯狀態
   const handleCloseModal = () => {
     setShowEditModal(false);
     setEditingProduct(undefined);
-  };
-
-  // 添加圖片上傳函式
-  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const formData = new FormData();
-      formData.append('file-to-upload', file);
-
-      // 確保 token 存在於 headers 中
-      const token = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("hexToken="))
-        ?.split("=")[1];
-
-      if (!token) {
-        throw new Error("No token found");
-      }
-
-      // 修正 API 路徑
-      const response = await axios.post<{
-        success: boolean;
-        imageUrl?: string;
-        message?: string;
-      }>(
-        `${API_BASE}/api/${API_PATH}/admin/upload`,  // 移除 v2
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            'Authorization': token
-          }
-        }
-      );
-
-      console.log('上傳回應:', response.data);  // 檢查回應
-
-      if (response.data.success && response.data.imageUrl) {
-        setNewProduct(prev => ({
-          ...prev,
-          imageUrl: response.data.imageUrl,
-          imagePreview: response.data.imageUrl
-        }));
-
-        ReactSwal.fire({
-          title: '成功',
-          text: '圖片上傳成功',
-          icon: 'success',
-          timer: 1500,
-          showConfirmButton: false
-        });
-      }
-    } catch (error) {
-      console.error('Upload error:', error);
-      if (axios.isAxiosError(error)) {
-        console.log('錯誤回應:', error.response?.data);  // 檢查錯誤回應
-        ReactSwal.fire({
-          title: '錯誤',
-          text: error.response?.data?.message || '圖片上傳失敗',
-          icon: 'error'
-        });
-      }
-    }
   };
 
   // 處理頁碼變更
