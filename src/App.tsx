@@ -51,7 +51,6 @@ function App() {
       const response = await axios.get<ApiResponse>(
         `${API_BASE}/api/${API_PATH}/admin/products?page=${page}`
       );
-      console.log('API 回應:', response.data); // 加入這行來檢查 API 回應
       setProducts(response.data.products || []);
       setPagination(response.data.pagination || null);
     } catch (error) {
