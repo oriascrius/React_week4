@@ -5,6 +5,10 @@ import withReactContent from 'sweetalert2-react-content';
 import "./assets/style.css";
 import { LoginFormData, Product, ApiResponse, NewProduct, PaginationType } from './types';
 import Pagination from './components/Pagination';
+import ProductActions from './components/ProductActions';
+import ViewProduct from './components/ViewProduct';
+import ProductModal from './components/EditProductModal';
+import AddProductModal from './components/AddProductModal';
 
 // API 基礎網址設定
 const API_BASE = import.meta.env.VITE_API_URL;
@@ -46,14 +50,17 @@ function App() {
     imagesPreview: []
   });
 
-  const [showModal, setShowModal] = useState(false);  // 控制 Modal 顯示
-  const [isEditing, setIsEditing] = useState(false);  // 控制是否為編輯模式
-  const [editingId, setEditingId] = useState<string>('');  // 新增：儲存正在編輯的商品 ID
-  const [showDetailModal, setShowDetailModal] = useState(false);  // 新增：控制查看細節 Modal
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingId, setEditingId] = useState<string>('');
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   // 新增分頁狀態
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<PaginationType | null>(null);
+
+  // 新增 editingProduct 狀態
+  const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
 
   // 取得產品列表的非同步函式
   const getData = async (page = 1) => {
@@ -90,7 +97,7 @@ function App() {
       axios.defaults.headers.common.Authorization = token;
       getData();
       setIsAuth(true);
-      
+
       ReactSwal.fire({
         title: '登入成功',
         icon: 'success',
@@ -118,7 +125,7 @@ function App() {
           .split("; ")
           .find((row) => row.startsWith("hexToken="))
           ?.split("=")[1];
-        
+
         if (!token) {
           setIsAuth(false);
           return;
@@ -126,10 +133,10 @@ function App() {
 
         // 設定 axios 預設標頭
         axios.defaults.headers.common.Authorization = token;
-        
+
         // 驗證 token
         const response = await axios.post(`${API_BASE}/api/user/check`);
-        
+
         if (response.data.success) {
           setIsAuth(true);
           getData();  // 取得產品資料
@@ -155,7 +162,7 @@ function App() {
           data: newProduct
         }
       );
-      
+
       if (response.data.success) {
         ReactSwal.fire({
           title: '商品新增成功',
@@ -164,7 +171,7 @@ function App() {
           timer: 1500
         });
         getData();
-        setShowModal(false);  // 關閉 Modal
+        setShowAddModal(false);  // 關閉 Modal
         // 重置表單
         setNewProduct({
           title: "",
@@ -196,7 +203,7 @@ function App() {
   // 處理表單輸入
   const handleProductChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
+
     if (name === 'imageUrl') {
       // 直接設定圖片網址和預覽
       setNewProduct(prev => ({
@@ -239,7 +246,7 @@ function App() {
         const response = await axios.delete<ApiResponse>(
           `${API_BASE}/api/${API_PATH}/admin/product/${id}`
         );
-        
+
         if (response.data.success) {
           ReactSwal.fire({
             title: '已刪除',
@@ -265,23 +272,8 @@ function App() {
 
   // 開啟編輯 Modal
   const handleEdit = (product: Product) => {
-    setIsEditing(true);
-    setEditingId(product.id);  // 保存正在編輯的商品 ID
-    setNewProduct({
-      title: product.title,
-      category: product.category,
-      origin_price: product.origin_price,
-      price: product.price,
-      unit: product.unit || "",
-      description: product.description || "",
-      content: product.content || "",
-      is_enabled: product.is_enabled as number,
-      imageUrl: product.imageUrl,
-      imagesUrl: product.imagesUrl || [],
-      imagePreview: product.imageUrl,
-      imagesPreview: product.imagesUrl || []
-    });
-    setShowModal(true);
+    setEditingProduct(product);
+    setShowEditModal(true);
   };
 
   // 處理更新商品
@@ -294,7 +286,7 @@ function App() {
           data: newProduct
         }
       );
-      
+
       if (response.data.success) {
         ReactSwal.fire({
           title: '商品更新成功',
@@ -303,8 +295,7 @@ function App() {
           timer: 1500
         });
         getData();
-        setShowModal(false);
-        setIsEditing(false);
+        setShowEditModal(false);
         setEditingId('');  // 清除編輯中的 ID
         // 重置表單
         setNewProduct({
@@ -336,23 +327,8 @@ function App() {
 
   // Modal 關閉時也要清除編輯狀態
   const handleCloseModal = () => {
-    setShowModal(false);
-    setIsEditing(false);
-    setEditingId('');  // 清除編輯中的 ID
-    setNewProduct({
-      title: "",
-      category: "",
-      origin_price: 0,
-      price: 0,
-      unit: "",
-      description: "",
-      content: "",
-      is_enabled: 1,
-      imageUrl: "",
-      imagesUrl: [],
-      imagePreview: "",
-      imagesPreview: []
-    });
+    setShowEditModal(false);
+    setEditingProduct(undefined);
   };
 
   // 添加圖片上傳函式
@@ -435,9 +411,9 @@ function App() {
         <div className="container p-5">  {/* 改用 container-fluid 讓表格更寬 */}
           <div className="d-flex justify-content-between align-items-center mb-4">
             <h2>產品列表</h2>
-            <button 
+            <button
               className="btn btn-primary"
-              onClick={() => setShowModal(true)}
+              onClick={() => setShowAddModal(true)}
             >
               新增商品
             </button>
@@ -462,11 +438,11 @@ function App() {
                 <tr key={product.id}>
                   <td className="align-middle">
                     {product.imageUrl && (
-                      <img 
+                      <img
                         src={product.imageUrl}
                         alt={product.title}
                         className="img-thumbnail"
-                        style={{ 
+                        style={{
                           width: '80px',
                           height: '80px',
                           objectFit: 'contain'
@@ -480,7 +456,7 @@ function App() {
                   <td className="align-middle">{product.origin_price}</td>
                   <td className="align-middle">{product.price}</td>
                   <td className="align-middle">
-                    <span 
+                    <span
                       className={`badge ${product.is_enabled ? 'bg-success' : 'bg-danger'}`}
                       style={{ fontSize: '0.9rem', padding: '8px 12px' }}  // 調整大小和間距
                     >
@@ -488,404 +464,52 @@ function App() {
                     </span>
                   </td>
                   <td className="align-middle">
-                    <button 
-                      className="btn btn-primary btn-sm me-2"
-                      onClick={() => {
+                    <ProductActions
+                      product={product}
+                      onEdit={handleEdit}
+                      onView={(product) => {
                         setTempProduct(product);
                         setShowDetailModal(true);
                       }}
-                    >
-                      查看
-                    </button>
-                    <button 
-                      className="btn btn-warning btn-sm me-2"
-                      onClick={() => handleEdit(product)}
-                    >
-                      編輯
-                    </button>
-                    <button 
-                      className="btn btn-danger btn-sm"
-                      onClick={() => handleDelete(product.id)}
-                    >
-                      刪除
-                    </button>
+                      onDelete={() => getData()}
+                    />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
 
-          {/* 商品新增/編輯 Modal */}
-          {showModal && (
-            <div className="modal" style={{ display: 'block' }}>
-              <div className="modal-dialog modal-lg"> {/* 使用 modal-lg 讓視窗更寬 */}
-                <div className="modal-content">
-                  <div className="modal-header">
-                    <h5 className="modal-title">
-                      {isEditing ? '編輯商品' : '新增商品'}
-                    </h5>
-                    <button 
-                      type="button" 
-                      className="btn-close"
-                      onClick={handleCloseModal}
-                    ></button>
-                  </div>
-                  <div className="modal-body">
-                    <form onSubmit={isEditing ? handleUpdate : handleAddProduct}>
-                      <div className="row">
-                        {/* 左側欄位 */}
-                        <div className="col-md-6">
-                          <div className="mb-3">
-                            <label className="form-label">商品名稱</label>
-                            <input
-                              type="text"
-                              className="form-control"
-                              name="title"
-                              value={newProduct.title}
-                              onChange={handleProductChange}
-                              required
-                            />
-                          </div>
-                          
-                          <div className="mb-3">
-                            <label className="form-label">商品描述</label>
-                            <textarea
-                              className="form-control"
-                              name="description"
-                              value={newProduct.description}
-                              onChange={handleProductChange}
-                              rows={3}
-                              required
-                            />
-                          </div>
-                          
-                          <div className="mb-3">
-                            <label className="form-label">商品內容</label>
-                            <textarea
-                              className="form-control"
-                              name="content"
-                              value={newProduct.content}
-                              onChange={handleProductChange}
-                              rows={3}
-                              required
-                            />
-                          </div>
+          {/* 商品詳情 Modal */}
+          <ViewProduct
+            product={tempProduct!}
+            show={showDetailModal}
+            onClose={() => setShowDetailModal(false)}
+          />
 
-                          <div className="row">
-                            <div className="col-md-6 mb-3">
-                              <label className="form-label">分類</label>
-                              <input
-                                type="text"
-                                className="form-control"
-                                name="category"
-                                value={newProduct.category}
-                                onChange={handleProductChange}
-                                required
-                              />
-                            </div>
-                            <div className="col-md-6 mb-3">
-                              <label className="form-label">單位</label>
-                              <input
-                                type="text"
-                                className="form-control"
-                                name="unit"
-                                value={newProduct.unit}
-                                onChange={handleProductChange}
-                                required
-                              />
-                            </div>
-                          </div>
+          {/* 新增商品 Modal */}
+          <AddProductModal
+            showModal={showAddModal}
+            onClose={() => setShowAddModal(false)}
+            onSuccess={() => {
+              setShowAddModal(false);
+              getData();  // 重新取得資料
+            }}
+          />
 
-                          <div className="row">
-                            <div className="col-md-6 mb-3">
-                              <label className="form-label">原價</label>
-                              <input
-                                type="number"
-                                className="form-control"
-                                name="origin_price"
-                                value={newProduct.origin_price}
-                                onChange={handleProductChange}
-                                required
-                              />
-                            </div>
-                            <div className="col-md-6 mb-3">
-                              <label className="form-label">售價</label>
-                              <input
-                                type="number"
-                                className="form-control"
-                                name="price"
-                                value={newProduct.price}
-                                onChange={handleProductChange}
-                                required
-                              />
-                            </div>
-                          </div>
-
-                          <div className="mb-3">
-                            <label className="form-label d-block">商品狀態</label>
-                            <div className="form-check form-check-inline">
-                              <input
-                                className="form-check-input"
-                                type="radio"
-                                name="is_enabled"
-                                id="enabled"
-                                value="1"
-                                checked={newProduct.is_enabled === 1}
-                                onChange={(e) => setNewProduct(prev => ({
-                                  ...prev,
-                                  is_enabled: parseInt(e.target.value)
-                                }))}
-                              />
-                              <label 
-                                className="form-check-label text-success" 
-                                htmlFor="enabled"
-                              >
-                                啟用
-                              </label>
-                            </div>
-                            <div className="form-check form-check-inline">
-                              <input
-                                className="form-check-input"
-                                type="radio"
-                                name="is_enabled"
-                                id="disabled"
-                                value="0"
-                                checked={newProduct.is_enabled === 0}
-                                onChange={(e) => setNewProduct(prev => ({
-                                  ...prev,
-                                  is_enabled: parseInt(e.target.value)
-                                }))}
-                              />
-                              <label 
-                                className="form-check-label text-danger" 
-                                htmlFor="disabled"
-                              >
-                                未啟用
-                              </label>
-                            </div>
-                          </div>
-
-                          <div className="mb-3">
-                            <label className="form-label">商品圖片</label>
-                            <div className="input-group">
-                              <input
-                                type="file"
-                                className="form-control"
-                                accept=".jpg,.jpeg,.png"
-                                onChange={handleImageUpload}
-                              />
-                              {newProduct.imageUrl && (
-                                <button
-                                  type="button"
-                                  className="btn btn-outline-danger"
-                                  onClick={() => setNewProduct(prev => ({
-                                    ...prev,
-                                    imageUrl: '',
-                                    imagePreview: ''
-                                  }))}
-                                >
-                                  移除
-                                </button>
-                              )}
-                            </div>
-                            {newProduct.imagePreview && (
-                              <div className="mt-2">
-                                <img
-                                  src={newProduct.imagePreview}
-                                  alt="預覽圖"
-                                  style={{
-                                    maxWidth: '200px',
-                                    maxHeight: '200px',
-                                    objectFit: 'contain'
-                                  }}
-                                />
-                              </div>
-                            )}
-                            <small className="text-muted">
-                              * 僅支援 jpg、jpeg 與 png 格式，檔案大小限制為 3MB 以下
-                            </small>
-                          </div>
-                        </div>
-
-                        {/* 右側圖片欄位 */}
-                        <div className="col-md-6">
-                          <div className="mb-3">
-                            <label className="form-label">其他圖片網址（多個網址請用逗號分隔）</label>
-                            <textarea
-                              className="form-control mb-2"
-                              name="imagesUrl"
-                              value={newProduct.imagesUrl?.join(', ')}
-                              onChange={handleProductChange}
-                              rows={3}
-                              placeholder="請輸入圖片網址，多個網址請用逗號分隔"
-                            />
-                            <div className="row g-2">
-                              {newProduct.imagesUrl?.map((url, index) => (
-                                <div key={index} className="col-6">
-                                  <img 
-                                    src={url}
-                                    alt={`圖片 ${index + 1}`}
-                                    className="img-thumbnail"
-                                    style={{ 
-                                      width: '100%',
-                                      height: '100px',
-                                      objectFit: 'contain'
-                                    }}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="modal-footer">
-                        <button 
-                          type="button" 
-                          className="btn btn-secondary"
-                          onClick={handleCloseModal}
-                        >
-                          關閉
-                        </button>
-                        <button 
-                          type="submit" 
-                          className="btn btn-primary"
-                        >
-                          {isEditing ? '更新商品' : '新增商品'}
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 查看商品細節 Modal */}
-          {showDetailModal && tempProduct && (
-            <div className="modal" style={{ display: 'block' }}>
-              <div className="modal-dialog modal-lg"> {/* 使用 modal-lg 讓視窗更寬 */}
-                <div className="modal-content">
-                  <div className="modal-header">
-                    <h5 className="modal-title">商品細節</h5>
-                    <button 
-                      type="button" 
-                      className="btn-close"
-                      onClick={() => setShowDetailModal(false)}
-                    ></button>
-                  </div>
-                  <div className="modal-body">
-                    <div className="row">
-                      {/* 左側圖片 */}
-                      <div className="col-md-6">
-                        <img 
-                          src={tempProduct.imageUrl} 
-                          alt={tempProduct.title}
-                          className="img-fluid rounded"
-                          style={{ 
-                            width: '100%',
-                            height: 'auto',
-                            objectFit: 'contain'
-                          }}
-                        />
-                        {/* 其他圖片預覽 */}
-                        {tempProduct.imagesUrl && tempProduct.imagesUrl.length > 0 && (
-                          <div className="row mt-3">
-                            {tempProduct.imagesUrl.map((url, index) => (
-                              <div key={index} className="col-3">
-                                <img 
-                                  src={url} 
-                                  alt={`其他圖片 ${index + 1}`}
-                                  className="img-thumbnail"
-                                  style={{ 
-                                    width: '100%',
-                                    height: 'auto'
-                                  }}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* 右側商品資訊 */}
-                      <div className="col-md-6">
-                        <h3 className="mb-3">{tempProduct.title}</h3>
-                        
-                        <div className="mb-3">
-                          <h5 className="text-muted">商品描述</h5>
-                          <p>{tempProduct.description}</p>
-                        </div>
-                        
-                        <div className="mb-3">
-                          <h5 className="text-muted">商品內容</h5>
-                          <p>{tempProduct.content}</p>
-                        </div>
-                        
-                        <div className="row mb-3">
-                          <div className="col-6">
-                            <h5 className="text-muted">分類</h5>
-                            <p>{tempProduct.category}</p>
-                          </div>
-                          <div className="col-6">
-                            <h5 className="text-muted">單位</h5>
-                            <p>{tempProduct.unit}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="row mb-3">
-                          <div className="col-6">
-                            <h5 className="text-muted">原價</h5>
-                            <p className="text-decoration-line-through">
-                              NT$ {tempProduct.origin_price}
-                            </p>
-                          </div>
-                          <div className="col-6">
-                            <h5 className="text-muted">特價</h5>
-                            <p className="text-danger fw-bold">
-                              NT$ {tempProduct.price}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="mb-3">
-                          <h5 className="text-muted">商品狀態</h5>
-                          <p>
-                            <span className={`badge ${tempProduct.is_enabled ? 'bg-success' : 'bg-danger'}`}>
-                              {tempProduct.is_enabled ? '啟用' : '未啟用'}
-                            </span>
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="modal-footer">
-                    <button 
-                      type="button" 
-                      className="btn btn-secondary"
-                      onClick={() => setShowDetailModal(false)}
-                    >
-                      關閉
-                    </button>
-                    <button 
-                      type="button" 
-                      className="btn btn-primary"
-                      onClick={() => {
-                        handleEdit(tempProduct);
-                        setShowDetailModal(false);
-                      }}
-                    >
-                      編輯商品
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* 編輯商品 Modal */}
+          <ProductModal
+            showModal={showEditModal}
+            onClose={handleCloseModal}
+            onSuccess={() => {
+              setShowEditModal(false);
+              getData();
+            }}
+            editProduct={editingProduct}
+          />
 
           {/* 在表格下方加入分頁元件 */}
           {pagination && (
-            <Pagination 
+            <Pagination
               pagination={pagination}
               currentPage={currentPage}
               onPageChange={handlePageChange}
