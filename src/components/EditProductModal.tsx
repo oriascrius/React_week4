@@ -151,11 +151,12 @@ const ProductModal = ({ showModal, onClose, onSuccess, editProduct }: ProductMod
                             <div className="row">
                                 <div className="col-md-6">
                                     <div className="mb-3">
-                                        <label className="form-label">商品名稱</label>
-                                        <input
+                                        <label className="form-label" htmlFor="title">商品名稱</label>
+                                        <input  
                                             type="text"
                                             className="form-control"
                                             name="title"
+                                            id="title"
                                             value={formData.title}
                                             onChange={handleChange}
                                             required
@@ -164,11 +165,12 @@ const ProductModal = ({ showModal, onClose, onSuccess, editProduct }: ProductMod
                                 </div>
                                 <div className="col-md-6">
                                     <div className="mb-3">
-                                        <label className="form-label">分類</label>
+                                        <label className="form-label" htmlFor="category">分類</label>
                                         <input
                                             type="text"
                                             className="form-control"
                                             name="category"
+                                            id="category"
                                             value={formData.category}
                                             onChange={handleChange}
                                             required
@@ -179,11 +181,12 @@ const ProductModal = ({ showModal, onClose, onSuccess, editProduct }: ProductMod
                             <div className="row">
                                 <div className="col-md-6">
                                     <div className="mb-3">
-                                        <label className="form-label">單位</label>
+                                        <label className="form-label" htmlFor="unit">單位</label>
                                         <input
                                             type="text"
                                             className="form-control"
                                             name="unit"
+                                            id="unit"
                                             value={formData.unit}
                                             onChange={handleChange}
                                             required
@@ -192,7 +195,7 @@ const ProductModal = ({ showModal, onClose, onSuccess, editProduct }: ProductMod
                                 </div>
                                 <div className="col-md-6">
                                     <div className="mb-3">
-                                        <label className="form-label">商品狀態</label>
+                                        <label className="form-label" htmlFor="is_enabled">商品狀態</label>
                                         <div className="d-flex align-items-center justify-content-center">
                                             <div className="form-check me-4">
                                                 <input
@@ -233,11 +236,13 @@ const ProductModal = ({ showModal, onClose, onSuccess, editProduct }: ProductMod
                             <div className="row">
                                 <div className="col-md-6">
                                     <div className="mb-3">
-                                        <label className="form-label">原價</label>
+                                        <label className="form-label" htmlFor="origin_price">原價</label>
                                         <input
                                             type="number"
                                             className="form-control"
                                             name="origin_price"
+                                            id="origin_price"
+                                            min={0}
                                             value={formData.origin_price}
                                             onChange={handleChange}
                                             required
@@ -246,11 +251,13 @@ const ProductModal = ({ showModal, onClose, onSuccess, editProduct }: ProductMod
                                 </div>
                                 <div className="col-md-6">
                                     <div className="mb-3">
-                                        <label className="form-label">售價</label>
+                                        <label className="form-label" htmlFor="price">售價</label>
                                         <input
                                             type="number"
                                             className="form-control"
                                             name="price"
+                                            id="price"
+                                            min={0}
                                             value={formData.price}
                                             onChange={handleChange}
                                             required
@@ -261,10 +268,11 @@ const ProductModal = ({ showModal, onClose, onSuccess, editProduct }: ProductMod
                             <div className="row">
                                 <div className="col-md-6">
                                     <div className="mb-3">
-                                        <label className="form-label">商品描述</label>
+                                        <label className="form-label" htmlFor="description">商品描述</label>
                                         <textarea
                                             className="form-control"
                                             name="description"
+                                            id="description"
                                             value={formData.description}
                                             onChange={handleChange}
                                             rows={3}
@@ -273,10 +281,11 @@ const ProductModal = ({ showModal, onClose, onSuccess, editProduct }: ProductMod
                                 </div>
                                 <div className="col-md-6">
                                     <div className="mb-3">
-                                        <label className="form-label">商品內容</label>
+                                        <label className="form-label" htmlFor="content">商品內容</label>
                                         <textarea
                                             className="form-control"
                                             name="content"
+                                            id="content"
                                             value={formData.content}
                                             onChange={handleChange}
                                             rows={3}
@@ -287,15 +296,17 @@ const ProductModal = ({ showModal, onClose, onSuccess, editProduct }: ProductMod
                             <div className="row">
                                 <div className="col-md-6">
                                     <div className="mb-3">
-                                        <label className="form-label">主要圖片</label>
+                                        <label className="form-label" htmlFor="imageUrl">主要圖片</label>
                                         <input
                                             type="file"
+                                            id="imageUrl"
                                             className="form-control mb-2"
                                             accept="image/*"
                                             onChange={handleImageUpload}
                                         />
                                         <input
                                             type="text"
+                                            id="imageUrl"
                                             className="form-control mb-2"
                                             name="imageUrl"
                                             value={formData.imageUrl}
@@ -314,9 +325,10 @@ const ProductModal = ({ showModal, onClose, onSuccess, editProduct }: ProductMod
                                 </div>
                                 <div className="col-md-6">
                                     <div className="mb-3">
-                                        <label className="form-label">其他圖片</label>
+                                        <label className="form-label" htmlFor="imagesUrl">其他圖片</label>
                                         <input
                                             type="text"
+                                            id="imagesUrl"
                                             className="form-control mb-2"
                                             name="imagesUrl"
                                             value={(formData.imagesUrl || []).join(',')}
